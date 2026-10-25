@@ -1,17 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-
-<link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-      .then(() => console.log('Service Worker Registered'))
-      .catch((err) => console.log('Service Worker Failed', err));
-  }
-</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
   <title>دار تبارك لتحفيظ القرآن</title>
   <meta name="theme-color" content="#065f46">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,12 +16,15 @@
 </head>
 <body class="bg-slate-100 pb-20 select-none">
 
-  <!-- الرأس (Header) -->
+  <!-- الرأس (Header) مع مؤشر الاتصال -->
   <header class="bg-emerald-800 text-white p-3.5 shadow-md sticky top-0 z-30">
     <div class="flex justify-between items-center max-w-md mx-auto">
-      <div>
-        <h1 class="text-lg font-bold">🌿 دار تبارك لتحفيظ القرآن</h1>
-        <p class="text-xs text-emerald-200">نظام السكرتارية والمتابعة والتقارير</p>
+      <div onclick="secretClickCount()" class="cursor-pointer">
+        <h1 id="appTitle" class="text-lg font-bold">🌿 دار تبارك لتحفيظ القرآن</h1>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span id="connectionDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+          <p id="connectionText" class="text-[11px] text-emerald-200">جاري الاتصال بقاعدة البيانات...</p>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <input type="date" id="currentDate" onchange="renderAll()" class="bg-emerald-900 text-white text-xs p-1.5 rounded border border-emerald-600">
@@ -42,14 +37,14 @@
   <div id="loader" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
     <div class="bg-white p-4 rounded-xl shadow-lg flex items-center gap-3">
       <div class="w-6 h-6 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-      <span class="text-sm font-semibold text-slate-700">جاري المزامنة مع جوجل شيت...</span>
+      <span class="text-sm font-semibold text-slate-700">جاري المزامنة مع قاعدة البيانات...</span>
     </div>
   </div>
 
   <!-- المحتوى الرئيسي -->
   <main class="max-w-md mx-auto p-3">
 
-    <!-- 1. قسم حضور وانصراف المعلمات -->
+    <!-- 1. حضور وانصراف المعلمات -->
     <section id="sec-teachers" class="space-y-3">
       <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
         <span class="text-sm font-bold text-slate-700">سجل حضور المعلمات بالساعة والدقيقة</span>
@@ -58,7 +53,7 @@
       <div id="teachersList" class="space-y-2.5"></div>
     </section>
 
-    <!-- 2. قسم الحلقات (حضور + تقدير + ملاحظة المعلمة) -->
+    <!-- 2. الحلقات والمقارئ -->
     <section id="sec-groups" class="hidden space-y-3">
       <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
         <label class="block text-xs font-bold text-slate-600 mb-1">اختر المقرأة / الحلقة:</label>
@@ -71,7 +66,7 @@
       <div id="studentsAttList" class="space-y-2.5"></div>
     </section>
 
-    <!-- 3. قسم المصروفات الشهرية -->
+    <!-- 3. المصروفات الشهرية -->
     <section id="sec-fees" class="hidden space-y-3">
       <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 space-y-2">
         <div class="flex gap-2">
@@ -92,7 +87,7 @@
       <div id="feesList" class="space-y-2.5"></div>
     </section>
 
-    <!-- 4. قسم التقارير الشهرية لكل مقرأة -->
+    <!-- 4. التقارير الشهرية -->
     <section id="sec-reports" class="hidden space-y-3">
       <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 space-y-2.5">
         <h2 class="font-bold text-slate-800 text-sm">📊 التقرير الشهري للمقرأة (الحلقة)</h2>
@@ -106,14 +101,12 @@
             <select id="groupSelectReport" onchange="renderMonthlyReports()" class="w-full p-2 bg-slate-50 border rounded-lg text-xs font-bold"></select>
           </div>
         </div>
-        <!-- ملخص المقرأة -->
         <div id="groupReportSummary" class="grid grid-cols-3 gap-2 pt-2 border-t text-center"></div>
       </div>
-
       <div id="studentsReportList" class="space-y-2.5"></div>
     </section>
 
-    <!-- 5. قسم رواتب المعلمات والإدارة -->
+    <!-- 5. الإدارة والرواتب (مع لوحة التحكم المخفية للطوارئ) -->
     <section id="sec-admin" class="hidden space-y-4">
       <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">
         <div class="flex justify-between items-center mb-3">
@@ -159,16 +152,17 @@
         <button onclick="addStudent()" class="w-full bg-emerald-700 text-white py-2 rounded-lg text-sm font-bold">تسجيل الطالب</button>
       </div>
 
-      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 space-y-2">
-        <h2 class="font-bold text-slate-800 text-xs">🔗 رابط Google Apps Script (Web App URL)</h2>
-        <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/AKfycbyGyVYci3tl4jsCAKp46vJiCixPZvsHuQsDXZMXitfBRZ2EMjrnvZlubf-Jw10qpjcU/exec" class="w-full p-2 border rounded text-xs dir-ltr text-left">
-        <button onclick="saveApiUrl()" class="w-full bg-slate-700 text-white py-1.5 rounded text-xs font-bold">حفظ الرابط وإعادة الاتصال</button>
+      <!-- إعدادات الطوارئ المخفية -->
+      <div id="emergencySettingsBox" class="hidden bg-rose-50 p-3.5 rounded-xl shadow-sm border border-rose-200 space-y-2">
+        <h2 class="font-bold text-rose-800 text-xs">🚨 لوحة الطوارئ: تعديل رابط قاعدة البيانات</h2>
+        <input id="apiUrlInput" type="url" class="w-full p-2 border rounded text-xs dir-ltr text-left bg-white">
+        <button onclick="saveApiUrl()" class="w-full bg-rose-700 text-white py-1.5 rounded text-xs font-bold">حفظ وإعادة الاتصال</button>
       </div>
     </section>
 
   </main>
 
-  <!-- شريط التنقل السفلي للموبايل (5 تبويبات) -->
+  <!-- شريط التنقل السفلي -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around text-[11px] text-slate-500 z-30 max-w-md mx-auto shadow-lg">
     <button onclick="switchTab('teachers')" id="tab-teachers" class="flex-1 py-2 flex flex-col items-center tab-active">
       <span class="text-base">👩‍🏫</span><span>المعلمات</span>
@@ -188,8 +182,9 @@
   </nav>
 
   <script>
-    const DEFAULT_API_URL = ""; 
-    let API_URL = localStorage.getItem('tabarak_api_url') || DEFAULT_API_URL;
+    // الرابط المثبت تلقائياً في النظام
+    const HARDCODED_API_URL = "https://script.google.com/macros/s/AKfycbyGyVYci3tl4jsCAKp46vJiCixPZvsHuQsDXZMXitfBRZ2EMjrnvZlubf-Jw10qpjcU/exec";
+    let API_URL = localStorage.getItem('tabarak_api_url') || HARDCODED_API_URL;
 
     let db = { teachers: [], groups: [], students: [], teacherAtt: [], studentAtt: [], payments: [] };
 
@@ -200,6 +195,33 @@
     document.getElementById('payrollMonth').value = todayStr.slice(0, 7);
     document.getElementById('apiUrlInput').value = API_URL;
 
+    // خدعة النقرات الخمسة لإظهار إعدادات الطوارئ
+    let secretClicks = 0;
+    function secretClickCount() {
+      secretClicks++;
+      if (secretClicks >= 5) {
+        document.getElementById('emergencySettingsBox').classList.toggle('hidden');
+        alert('تم فتح لوحة الطوارئ لتعديل الرابط.');
+        secretClicks = 0;
+      }
+      setTimeout(() => { secretClicks = 0; }, 3000);
+    }
+
+    function updateConnectionStatus(status, text) {
+      const dot = document.getElementById('connectionDot');
+      const label = document.getElementById('connectionText');
+      if (status === 'connected') {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
+        label.innerText = text || "متصل بقاعدة البيانات";
+      } else if (status === 'syncing') {
+        dot.className = "w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse";
+        label.innerText = text || "جاري المزامنة...";
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
+        label.innerText = text || "غير متصل (تحقق من الإنترنت)";
+      }
+    }
+
     function getNowTime() {
       return new Date().toTimeString().slice(0, 5);
     }
@@ -208,7 +230,6 @@
     }, 1000);
     document.getElementById('currentTimeBadge').innerText = 'الآن: ' + getNowTime();
 
-    // ======== دوال الواتساب وتجميع الأخوة ========
     function normalizePhone(phone) {
       if (!phone) return '';
       let p = phone.toString().replace(/\D/g, '');
@@ -235,7 +256,6 @@
       window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`, '_blank');
     }
 
-    // إرسال واتساب غياب (يجمع الأخوة الغائبين)
     function sendAbsenceWhatsApp(studentId) {
       const date = document.getElementById('currentDate').value;
       const student = db.students.find(s => s['المعرف'] === studentId);
@@ -261,7 +281,6 @@
       sendWhatsAppMessage(student['هاتف ولي الأمر'], msg);
     }
 
-    // إرسال تقييم اليوم لولي الأمر واتساب
     function sendDailyEvalWhatsApp(studentId) {
       const date = document.getElementById('currentDate').value;
       const s = db.students.find(st => st['المعرف'] === studentId);
@@ -275,7 +294,6 @@
       sendWhatsAppMessage(s['هاتف ولي الأمر'], msg);
     }
 
-    // إرسال التقرير الشهري الشامل للطالب (أو للأخوة معاً) عبر واتساب
     function sendMonthlyReportWhatsApp(studentId, includeSiblings = false) {
       const month = document.getElementById('reportMonth').value;
       const student = db.students.find(s => s['المعرف'] === studentId);
@@ -298,11 +316,10 @@
                `• اشتراك الشهر: ${isPaid ? '✅ مسدد' : '⏳ غير مسدد'}`;
       }).join('\n────────────\n');
 
-      const msg = `السلام عليكم ورحمة الله وبركاته 🌿\n📊 *التقرير الشهري من دار تبارك لتحفيظ القرآن*\nعن شهر: (*${month}*)\n\n${blocks}\n\nجزاكم الله خيراً على حسن متابعتكم، وجعل القرآن ربيع قلوبهم.`;
+      const msg = `السلام عليكم ورحمة الله وبركاته 🌿\n📊 *التقرير الشهري من دار تبارك لتحفيظ القرآن*\nعن شهر: (*${month}*)\n\n${blocks}\n\nجزاكم الله خيراً على حسن متابعتكم.`;
       sendWhatsAppMessage(student['هاتف ولي الأمر'], msg);
     }
 
-    // إرسال واتساب تذكير بالمصروفات (يجمع الأخوة)
     function sendFeeReminderWhatsApp(studentId) {
       const month = document.getElementById('feeMonth').value;
       const student = db.students.find(s => s['المعرف'] === studentId);
@@ -328,7 +345,7 @@
           return `• *${s['اسم الطالب']}* (${s['اسم الحلقة']}): ${fee} ج`;
         }).join('\n');
 
-        msg = `السلام عليكم ورحمة الله وبركاته 🌿\nتحية طيبة من إدارة *دار تبارك لتحفيظ القرآن الكريم*.\n\nنود تذكيركم بموعد سداد الاشتراك الشهري عن شهر (*${month}*) للأبناء:\n${details}\n\n💰 *إجمالي المطلوب للأخوة: ${total} ج*\n\nبارك الله فيكم وجعلهم قرة عين لكم.`;
+        msg = `السلام عليكم ورحمة الله وبركاته 🌿\nتحية طيبة من إدارة *دار تبارك لتحفيظ القرآن الكريم*.\n\nنود تذكيركم بموعد سداد الاشتراك الشهري عن شهر (*${month}*) للأبناء:\n${details}\n\n💰 *إجمالي المطلوب للأخوة: ${total} ج*\n\nبارك الله فيكم.`;
       }
 
       sendWhatsAppMessage(student['هاتف ولي الأمر'], msg);
@@ -349,6 +366,7 @@
       if (unpaidSiblings.length === 0) return;
 
       showLoader(true);
+      updateConnectionStatus('syncing', 'جاري تحصيل المصروفات...');
       try {
         for (const sib of unpaidSiblings) {
           await fetch(API_URL, {
@@ -381,18 +399,15 @@
 
     function saveApiUrl() {
       const val = document.getElementById('apiUrlInput').value.trim();
-      if (!val) return alert('يرجى لصق الرابط أولاً');
+      if (!val) return alert('يرجى إدخال الرابط أولاً');
       localStorage.setItem('tabarak_api_url', val);
       API_URL = val;
       loadData();
+      alert('تم حفظ الرابط بنجاح');
     }
 
     async function loadData() {
-      if (!API_URL) {
-        switchTab('admin');
-        alert('مرحباً بك! يرجى لصق رابط Google Apps Script في خانة الإعدادات بالأسفل للبدء.');
-        return;
-      }
+      updateConnectionStatus('syncing', 'جاري المزامنة...');
       showLoader(true);
       try {
         const res = await fetch(API_URL);
@@ -401,21 +416,24 @@
           db = data;
           populateDropdowns();
           renderAll();
+          updateConnectionStatus('connected', 'متصل بقاعدة البيانات');
         }
       } catch (e) {
-        alert('تعذر الاتصال بملف جوجل شيت، تأكد من الإنترنت وصحة الرابط.');
+        updateConnectionStatus('disconnected', 'غير متصل (خطأ في الشبكة)');
       }
       showLoader(false);
     }
 
     async function sendAction(payload) {
-      if (!API_URL) return alert('الرابط غير مضبوط!');
+      updateConnectionStatus('syncing', 'جاري الحفظ...');
       showLoader(true);
       try {
         await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         await loadData();
+        updateConnectionStatus('connected', 'متصل بقاعدة البيانات');
       } catch (e) {
-        alert('حدث خطأ أثناء الحفظ');
+        alert('حدث خطأ أثناء الاتصال بقاعدة البيانات');
+        updateConnectionStatus('disconnected', 'فشل الحفظ');
         showLoader(false);
       }
     }
@@ -459,7 +477,6 @@
       renderPayroll();
     }
 
-    // 1. حضور المعلمات
     function renderTeachers() {
       const date = document.getElementById('currentDate').value;
       const container = document.getElementById('teachersList');
@@ -516,7 +533,6 @@
       sendAction(payload);
     }
 
-    // 2. عرض طلاب المقرأة + التقدير + ملاحظة المعلمة
     function renderGroupStudents() {
       const groupId = document.getElementById('groupSelectAtt').value;
       const date = document.getElementById('currentDate').value;
@@ -557,7 +573,6 @@
               </div>
             </div>
 
-            <!-- خانة التقدير وملاحظة المعلمة -->
             <div class="flex gap-1.5 pt-1">
               <select id="grade_${s['المعرف']}" class="w-1/3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700">
                 <option value="ممتاز" ${savedGrade === 'ممتاز' ? 'selected' : ''}>🌟 ممتاز</option>
@@ -565,12 +580,12 @@
                 <option value="جيد" ${savedGrade === 'جيد' ? 'selected' : ''}>👌 جيد</option>
                 <option value="إعادة تسميع" ${savedGrade === 'إعادة تسميع' ? 'selected' : ''}>🔄 إعادة</option>
               </select>
-              <input id="note_${s['المعرف']}" type="text" value="${savedNote}" placeholder="ملاحظة المعلمة (الحفظ/المراجعة)..." class="w-2/3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+              <input id="note_${s['المعرف']}" type="text" value="${savedNote}" placeholder="ملاحظة المعلمة..." class="w-2/3 p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs">
             </div>
 
             ${status === 'حاضر' ? `
               <div class="pt-1 border-t border-slate-100 flex justify-between items-center">
-                <button onclick="markS('${s['المعرف']}', '${s['اسم الطالب']}', '${groupId}', 'حاضر')" class="text-[11px] text-emerald-700 font-bold underline">💾 تحديث التقدير/الملاحظة</button>
+                <button onclick="markS('${s['المعرف']}', '${s['اسم الطالب']}', '${groupId}', 'حاضر')" class="text-[11px] text-emerald-700 font-bold underline">💾 تحديث</button>
                 <button onclick="sendDailyEvalWhatsApp('${s['المعرف']}')" class="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold py-1 px-2.5 rounded-lg">📲 إرسال تقييم اليوم واتساب</button>
               </div>
             ` : ''}
@@ -579,7 +594,7 @@
               <div class="pt-1.5 border-t border-slate-100 flex justify-end">
                 <button onclick="sendAbsenceWhatsApp('${s['المعرف']}')" class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 shadow-sm">
                   <span>💬</span>
-                  <span>${hasSiblings ? 'إبلاغ ولي الأمر بالغياب (يشمل الأخوة الغائبين)' : 'إرسال إشعار غياب لولي الأمر واتساب'}</span>
+                  <span>إرسال إشعار غياب لولي الأمر واتساب</span>
                 </button>
               </div>
             ` : ''}
@@ -597,18 +612,11 @@
 
       sendAction({
         action: 'markStudentAtt',
-        date,
-        month: date.slice(0, 7),
-        studentId,
-        studentName,
-        groupId,
-        status,
-        grade,
-        note
+        date, month: date.slice(0, 7),
+        studentId, studentName, groupId, status, grade, note
       });
     }
 
-    // 3. عرض وتحصيل المصروفات الشهرية
     function renderFees() {
       const month = document.getElementById('feeMonth').value;
       const groupFilter = document.getElementById('groupSelectFee').value;
@@ -651,10 +659,7 @@
                   <span class="text-slate-400"> (${s['اسم الحلقة']}) - ${s['المصروفات المطلوبة']} ج</span>
                 </div>
                 <div>
-                  ${isPaid 
-                    ? `<span class="text-emerald-700 font-bold">✅ خالص</span>`
-                    : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 font-bold px-2.5 py-1 rounded">تحصيل فردي</button>`
-                  }
+                  ${isPaid ? `<span class="text-emerald-700 font-bold">✅ خالص</span>` : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 font-bold px-2.5 py-1 rounded">تحصيل فردي</button>`}
                 </div>
               </div>
             `;
@@ -674,12 +679,8 @@
               <div class="space-y-1">${childrenRows}</div>
               ${unpaidFamilyTotal > 0 ? `
                 <div class="flex gap-2 pt-2">
-                  <button onclick="payAllSiblingsFee('${firstStudent['المعرف']}')" class="flex-1 bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg shadow-sm">
-                    💳 تحصيل الكل (${unpaidFamilyTotal} ج)
-                  </button>
-                  <button onclick="sendFeeReminderWhatsApp('${firstStudent['المعرف']}')" class="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm">
-                    💬 واتساب مجمع للأسرة
-                  </button>
+                  <button onclick="payAllSiblingsFee('${firstStudent['المعرف']}')" class="flex-1 bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg shadow-sm">💳 تحصيل الكل (${unpaidFamilyTotal} ج)</button>
+                  <button onclick="sendFeeReminderWhatsApp('${firstStudent['المعرف']}')" class="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded-lg shadow-sm">💬 واتساب مجمع للأسرة</button>
                 </div>
               ` : ''}
             </div>
@@ -707,23 +708,16 @@
                 <p class="text-xs text-slate-500">${s['اسم الحلقة']} | المطلوب: <b>${s['المصروفات المطلوبة']} ج</b></p>
               </div>
               <div>
-                ${isPaid 
-                  ? `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-lg">✅ خالص (${payRec['المبلغ المدفوع']} ج)</span>`
-                  : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm">تحصيل ${s['المصروفات المطلوبة']} ج</button>`
-                }
+                ${isPaid ? `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-lg">✅ خالص (${payRec['المبلغ المدفوع']} ج)</span>` : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm">تحصيل ${s['المصروفات المطلوبة']} ج</button>`}
               </div>
             </div>
             ${!isPaid ? `
               <div class="flex gap-1.5 pt-1.5 border-t border-slate-100">
                 <button onclick="sendFeeReminderWhatsApp('${s['المعرف']}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1">
                   <span>💬</span>
-                  <span>${unpaidSiblings.length > 1 ? `تذكير واتساب شامل للأخوة (${unpaidSiblings.length})` : 'تذكير ولي الأمر واتساب'}</span>
+                  <span>تذكير ولي الأمر واتساب</span>
                 </button>
-                ${unpaidSiblings.length > 1 ? `
-                  <button onclick="payAllSiblingsFee('${s['المعرف']}')" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-2.5 rounded-lg">
-                    تحصيل الأخوة معاً
-                  </button>
-                ` : ''}
+                ${unpaidSiblings.length > 1 ? `<button onclick="payAllSiblingsFee('${s['المعرف']}')" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-2.5 rounded-lg">تحصيل الأخوة معاً</button>` : ''}
               </div>
             ` : ''}
           </div>
@@ -737,7 +731,6 @@
       sendAction({ action: 'payFee', date, month, studentId, studentName, groupId, amount });
     }
 
-    // 4. التقارير الشهرية لكل مقرأة (الحلقة)
     function renderMonthlyReports() {
       const month = document.getElementById('reportMonth').value;
       const groupId = document.getElementById('groupSelectReport').value;
@@ -752,7 +745,7 @@
 
       document.getElementById('groupReportSummary').innerHTML = `
         <div class="bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-          <p class="text-[10px] text-slate-500">نسبة حضور المقرأة</p>
+          <p class="text-[10px] text-slate-500">نسبة الحضور</p>
           <p class="text-sm font-bold text-emerald-800">${attendanceRate}%</p>
         </div>
         <div class="bg-amber-50 p-2 rounded-lg border border-amber-100">
@@ -776,7 +769,6 @@
         const presentDays = logs.filter(a => a['الحالة'] === 'حاضر').length;
         const absentDays = logs.filter(a => a['الحالة'] === 'غائب').length;
         const excCount = logs.filter(a => a['التقدير'] === 'ممتاز').length;
-        const vgCount = logs.filter(a => a['التقدير'] === 'جيد جداً').length;
         const notesList = logs.filter(a => a['ملاحظة المعلمة']).map(a => `<li class="text-[11px] text-slate-600">📌 <b>${a['التاريخ'].slice(5)}:</b> ${a['ملاحظة المعلمة']} (${a['التقدير'] || '-'})</li>`).join('');
         const siblings = getSiblings(s);
 
@@ -789,30 +781,17 @@
                 <span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded">غياب: ${absentDays}</span>
               </div>
             </div>
-
-            <div class="text-xs text-slate-600 flex justify-between">
-              <span>🌟 ممتاز: <b>${excCount}</b> مرة</span>
-              <span>👍 جيد جداً: <b>${vgCount}</b> مرة</span>
-            </div>
-
-            ${notesList ? `<ul class="bg-slate-50 p-2 rounded-lg space-y-1 border border-slate-100">${notesList}</ul>` : `<p class="text-[11px] text-slate-400">لا توجد ملاحظات مسجلة هذا الشهر</p>`}
-
+            <div class="text-xs text-slate-600">🌟 ممتاز: <b>${excCount}</b> مرة</div>
+            ${notesList ? `<ul class="bg-slate-50 p-2 rounded-lg space-y-1 border border-slate-100">${notesList}</ul>` : `<p class="text-[11px] text-slate-400">لا توجد ملاحظات مسجلة</p>`}
             <div class="flex gap-1.5 pt-1">
-              <button onclick="sendMonthlyReportWhatsApp('${s['المعرف']}', false)" class="flex-1 bg-emerald-700 text-white text-xs font-bold py-1.5 rounded-lg">
-                📲 إرسال تقرير الطالب واتساب
-              </button>
-              ${siblings.length > 1 ? `
-                <button onclick="sendMonthlyReportWhatsApp('${s['المعرف']}', true)" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-2.5 rounded-lg">
-                  👨‍👩‍👧‍👦 تقرير الأخوة معاً
-                </button>
-              ` : ''}
+              <button onclick="sendMonthlyReportWhatsApp('${s['المعرف']}', false)" class="flex-1 bg-emerald-700 text-white text-xs font-bold py-1.5 rounded-lg">📲 إرسال التقرير واتساب</button>
+              ${siblings.length > 1 ? `<button onclick="sendMonthlyReportWhatsApp('${s['المعرف']}', true)" class="bg-indigo-600 text-white text-xs font-bold py-1.5 px-2.5 rounded-lg">👨‍👩‍👧‍👦 تقرير الأخوة</button>` : ''}
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // 5. مسير رواتب المعلمات
     function renderPayroll() {
       const month = document.getElementById('payrollMonth').value;
       const container = document.getElementById('payrollList');
@@ -821,7 +800,6 @@
         const logs = db.teacherAtt.filter(a => a['الشهر'] === month && a['معرف المعلمة'] === t['المعرف']);
         const presentDays = logs.filter(a => a['الحالة'] === 'حاضر').length;
         const absentDays = logs.filter(a => a['الحالة'] === 'غائب').length;
-        const excusedDays = logs.filter(a => a['الحالة'] === 'مستأذن').length;
 
         const baseSalary = Number(t['الراتب الأساسي']) || 0;
         const deductRate = Number(t['خصم يوم الغياب']) || 50;
@@ -836,7 +814,7 @@
             </div>
             <div class="flex justify-between text-slate-600">
               <span>الأساسي: ${baseSalary} ج</span>
-              <span>حضور: ${presentDays} يوم | إذن: ${excusedDays}</span>
+              <span>حضور: ${presentDays} يوم</span>
             </div>
             <div class="flex justify-between text-rose-600 font-semibold border-t pt-1">
               <span>الغياب: ${absentDays} أيام × ${deductRate} ج</span>
