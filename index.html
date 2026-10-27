@@ -4,10 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="manifest" href="manifest.json">
-  <!-- أيقونة تبويب المتصفح وأيقونة شاشة الموبايل -->
   <link rel="icon" type="image/png" href="./icon-512.png">
   <link rel="apple-touch-icon" href="./icon-512.png">
-  
   <title>دار تبارك لتحفيظ القرآن</title>
   <meta name="theme-color" content="#065f46">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,43 +16,53 @@
     .tab-active { color: #065f46; border-top: 3px solid #065f46; font-weight: 700; background-color: #ecfdf5; }
   </style>
 </head>
-<body class="bg-slate-100 pb-20 select-none">
+<body class="bg-slate-100 pb-24 select-none">
 
-  <!-- الرأس -->
-<!-- الرأس مع اللوجو بجانب العنوان -->
+  <!-- الرأس مع زر الرفع الدفعي -->
   <header class="bg-emerald-800 text-white p-3 shadow-md sticky top-0 z-30">
     <div class="flex justify-between items-center max-w-md mx-auto">
       <div onclick="secretClickCount()" class="flex items-center gap-2.5 cursor-pointer">
-        <img src="./icon-512.png" alt="شعار دار تبارك" class="w-10 h-10 rounded-xl bg-white p-0.5 shadow-sm object-contain">
+        <img src="./icon-512.png" onerror="this.style.display='none'" alt="شعار" class="w-10 h-10 rounded-xl bg-white p-0.5 shadow-sm object-contain">
         <div>
           <h1 class="text-base font-bold leading-tight">دار تبارك لتحفيظ القرآن</h1>
           <div class="flex items-center gap-1.5 mt-0.5">
             <span id="connectionDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse"></span>
-            <p id="connectionText" class="text-[11px] text-emerald-200">جاري الاتصال بقاعدة البيانات...</p>
+            <p id="connectionText" class="text-[11px] text-emerald-200">جاري الاتصال...</p>
           </div>
         </div>
       </div>
       <div class="flex items-center gap-1.5">
         <input type="date" id="currentDate" onchange="renderAll()" class="bg-emerald-900 text-white text-xs p-1.5 rounded border border-emerald-600">
-        <button onclick="loadData()" class="bg-emerald-700 p-1.5 rounded hover:bg-emerald-600" title="تحديث">🔄</button>
+        <button onclick="loadData()" class="bg-emerald-700 p-1.5 rounded hover:bg-emerald-600" title="تحديث من القاعدة">🔄</button>
       </div>
+    </div>
+
+    <!-- شريط الرفع المجمع (يظهر تلقائياً عند وجود تعديلات أوفلاين لم تُرفع) -->
+    <div id="syncBanner" class="hidden max-w-md mx-auto mt-2.5 bg-amber-500 text-slate-900 px-3 py-2 rounded-xl shadow flex justify-between items-center">
+      <div class="text-xs font-bold flex items-center gap-1.5">
+        <span>⚡</span>
+        <span>مسجل على الهاتف: <b id="pendingCount">0</b> حركة</span>
+      </div>
+      <button onclick="syncPendingQueue()" class="bg-slate-900 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow hover:bg-slate-800">
+        ☁️ رفع الكل دفعة واحدة
+      </button>
     </div>
   </header>
 
-  <!-- شريط التحميل -->
+  <!-- شاشة انتظار المزامنة -->
   <div id="loader" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
     <div class="bg-white p-4 rounded-xl shadow-lg flex items-center gap-3">
       <div class="w-6 h-6 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-      <span class="text-sm font-semibold text-slate-700">جاري المزامنة مع قاعدة البيانات...</span>
+      <span id="loaderText" class="text-sm font-semibold text-slate-700">جاري المزامنة مع قاعدة البيانات...</span>
     </div>
   </div>
 
   <main class="max-w-md mx-auto p-3">
 
-    <!-- 1. المعلمات -->
+    <!-- 1. المعلمات (مع نظام توزيع الأطفال والبونص عند الغياب) -->
     <section id="sec-teachers" class="space-y-3">
       <div class="bg-white p-3 rounded-xl shadow-sm border flex justify-between items-center">
-        <span class="text-sm font-bold text-slate-700">سجل حضور المعلمات بالساعة والدقيقة</span>
+        <span class="text-xs font-bold text-slate-700">⚡ التسجيل فوري (أوفلاين) ثم ارفع الكل آخر اليوم</span>
         <span id="currentTimeBadge" class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold"></span>
       </div>
       <div id="teachersList" class="space-y-2.5"></div>
@@ -113,10 +121,10 @@
     <!-- 5. الإدارة والرواتب والتعديل -->
     <section id="sec-admin" class="hidden space-y-4">
 
-      <!-- مسير الرواتب -->
+      <!-- مسير الرواتب الشامل (الأساسي - الخصم + البونص) -->
       <div class="bg-white p-3.5 rounded-xl shadow-sm border">
         <div class="flex justify-between items-center mb-3">
-          <h2 class="font-bold text-slate-800 text-sm">💰 مسير رواتب المعلمات</h2>
+          <h2 class="font-bold text-slate-800 text-sm">💰 مسير الرواتب (شامل الخصم والبونص)</h2>
           <input type="month" id="payrollMonth" onchange="renderPayroll()" class="p-1.5 bg-slate-50 border rounded text-xs font-bold">
         </div>
         <div id="payrollList" class="space-y-2.5"></div>
@@ -191,11 +199,12 @@
   </nav>
 
   <script>
-    // الرابط الأحدث الذي أرسلته
     const FALLBACK_API_URL = "https://script.google.com/macros/s/AKfycbxptZMrofaGkSqxwwJ7als6v7i_47o7hNK1hxaxxZcHKazYtFlWkPgX9Fbv_tRK7_U/exec";
     let API_URL = FALLBACK_API_URL;
 
-    let db = { teachers: [], groups: [], students: [], teacherAtt: [], studentAtt: [], payments: [] };
+    // تحميل البيانات المخزنة أوفلاين + طابور العمليات غير المرفوعة
+    let db = JSON.parse(localStorage.getItem('tabarak_local_db') || '{"teachers":[],"groups":[],"students":[],"teacherAtt":[],"studentAtt":[],"payments":[]}');
+    let pendingQueue = JSON.parse(localStorage.getItem('tabarak_pending_queue') || '[]');
 
     const todayStr = new Date().toISOString().split('T')[0];
     document.getElementById('currentDate').value = todayStr;
@@ -203,30 +212,86 @@
     document.getElementById('reportMonth').value = todayStr.slice(0, 7);
     document.getElementById('payrollMonth').value = todayStr.slice(0, 7);
 
-    // مسح أي كاش قديم معلق من Service Worker لضمان قراءة الكود الجديد فوراً
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        for (let reg of regs) reg.update();
-      });
+    // ======== إدارة الطابور الأوفلاين والرفع الدفعي السريع ========
+    function saveLocalState() {
+      localStorage.setItem('tabarak_local_db', JSON.stringify(db));
+      localStorage.setItem('tabarak_pending_queue', JSON.stringify(pendingQueue));
+      updateSyncBanner();
     }
 
+    function updateSyncBanner() {
+      const banner = document.getElementById('syncBanner');
+      const countEl = document.getElementById('pendingCount');
+      countEl.innerText = pendingQueue.length;
+      if (pendingQueue.length > 0) {
+        banner.classList.remove('hidden');
+        updateConnectionStatus('pending', `يوجد ${pendingQueue.length} تعديل بانتظار الرفع`);
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // تسجيل العملية فوراً في الموبايل (سرعة 0 ثانية) ووضعها في الطابور
+    function queueAction(payload) {
+      pendingQueue.push(payload);
+      saveLocalState();
+      renderAll();
+    }
+
+    // زر رفع كل العمليات دفعة واحدة إلى جوجل شيت
+    async function syncPendingQueue() {
+      if (pendingQueue.length === 0) return;
+      showLoader(true, `جاري رفع ${pendingQueue.length} عملية دفعة واحدة...`);
+      updateConnectionStatus('syncing', 'جاري رفع الدفعة...');
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'batchSync', queue: pendingQueue })
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+          pendingQueue = [];
+          saveLocalState();
+          await loadData(true); // سحب التأكيد النهائي
+        } else {
+          alert('حدثت مشكلة أثناء الرفع: ' + (result.message || ''));
+          updateConnectionStatus('disconnected', 'تعذر الرفع');
+        }
+      } catch (e) {
+        alert('تأكد من اتصال الإنترنت لرفع البيانات المحفوظة على الهاتف.');
+        updateConnectionStatus('disconnected', 'أوفلاين (التعديلات محفوظة بالهاتف)');
+      }
+      showLoader(false);
+    }
+    // ========================================================
+
     async function initApp() {
-      localStorage.removeItem('tabarak_api_url');
+      // عرض البيانات المحفوظة على الهاتف فوراً في جزء من الثانية قبل الاتصال بالنت
+      if (db.teachers.length > 0) {
+        populateDropdowns();
+        renderAll();
+      }
+      updateSyncBanner();
+
       try {
         const res = await fetch('./config.json?t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
           const cfg = await res.json();
           if (cfg.apiUrl && cfg.apiUrl.trim() !== "") API_URL = cfg.apiUrl.trim();
         }
-      } catch (e) {
-        console.log('Using Fallback API URL');
-      }
+      } catch (e) {}
 
       const emergencyUrl = localStorage.getItem('tabarak_emergency_url');
       if (emergencyUrl) API_URL = emergencyUrl;
-
       document.getElementById('apiUrlInput').value = API_URL;
-      await loadData();
+
+      // إذا لم يكن هناك تعديلات معلقة، نسحب أحدث بيانات من السحابة في الخلفية
+      if (pendingQueue.length === 0) {
+        await loadData(false);
+      }
     }
 
     let secretClicks = 0;
@@ -245,13 +310,16 @@
       const label = document.getElementById('connectionText');
       if (status === 'connected') {
         dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block";
-        label.innerText = text || "متصل بقاعدة البيانات";
+        label.innerText = text || "متصل ومزامن بالكامل ✓";
+      } else if (status === 'pending') {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-bounce";
+        label.innerText = text || "تعديلات محلية جاهزة للرفع";
       } else if (status === 'syncing') {
-        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse";
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-300 inline-block animate-ping";
         label.innerText = text || "جاري المزامنة...";
       } else {
         dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500 inline-block";
-        label.innerText = text || "غير متصل";
+        label.innerText = text || "يعمل أوفلاين (محفوظ بالهاتف)";
       }
     }
 
@@ -339,29 +407,11 @@
       sendWhatsAppMessage(student['هاتف ولي الأمر'], `السلام عليكم 🌿\nتذكير بسداد اشتراك شهر (*${month}*):\n${details}\n💰 *الإجمالي: ${total} ج*\nبارك الله فيكم.`);
     }
 
-    async function payAllSiblingsFee(studentId) {
-      const month = document.getElementById('feeMonth').value;
-      const date = document.getElementById('currentDate').value;
-      const student = db.students.find(s => s['المعرف'] === studentId);
-      if (!student) return;
-      const siblings = getSiblings(student);
-      const unpaid = siblings.filter(sib => !db.payments.find(p => p['الشهر'] === month && p['معرف الطالب'] === sib['المعرف'] && Number(p['المبلغ المدفوع']) > 0));
-      if (unpaid.length === 0) return;
-      showLoader(true);
-      try {
-        for (const sib of unpaid) {
-          await fetch(API_URL, {
-            method: 'POST',
-            redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'payFee', date, month, studentId: sib['المعرف'], studentName: sib['اسم الطالب'], groupId: sib['معرف الحلقة'], amount: sib['المصروفات المطلوبة'] })
-          });
-        }
-        await loadData();
-      } catch (e) { alert('خطأ في التحصيل'); showLoader(false); }
+    function showLoader(show, text) {
+      if (text) document.getElementById('loaderText').innerText = text;
+      document.getElementById('loader').classList.toggle('hidden', !show);
     }
 
-    function showLoader(show) { document.getElementById('loader').classList.toggle('hidden', !show); }
     function switchTab(tab) {
       ['teachers', 'groups', 'fees', 'reports', 'admin'].forEach(t => {
         document.getElementById('sec-' + t).classList.toggle('hidden', t !== tab);
@@ -374,62 +424,38 @@
       const val = document.getElementById('apiUrlInput').value.trim();
       if (!val) {
         localStorage.removeItem('tabarak_emergency_url');
-        alert('تم مسح رابط الطوارئ، سيتم القراءة من config.json');
         initApp();
         return;
       }
       localStorage.setItem('tabarak_emergency_url', val);
       API_URL = val;
-      loadData();
-      alert('تم الحفظ');
+      loadData(true);
     }
 
-    async function loadData() {
-      updateConnectionStatus('syncing', 'جاري المزامنة...');
-      showLoader(true);
-      try {
-        const res = await fetch(API_URL + '?t=' + Date.now(), { method: 'GET', redirect: 'follow' });
-        const text = await res.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (jsonErr) {
-          updateConnectionStatus('disconnected', 'خطأ صلاحيات (تأكد أن النشر Anyone)');
-          showLoader(false);
+    async function loadData(showSpin = true) {
+      if (pendingQueue.length > 0) {
+        if (confirm(`لديك ${pendingQueue.length} تعديلات مسجلة على الهاتف لم يتم رفعها بعد. هل تريد رفعها أولاً حتى لا تضيع؟`)) {
+          await syncPendingQueue();
           return;
         }
+      }
+
+      updateConnectionStatus('syncing', 'جاري التحديث...');
+      if (showSpin) showLoader(true, 'جاري جلب أحدث البيانات...');
+      try {
+        const res = await fetch(API_URL + '?t=' + Date.now(), { method: 'GET', redirect: 'follow' });
+        const data = await res.json();
         if (data && data.status === 'success') {
           db = data;
+          saveLocalState();
           populateDropdowns();
           renderAll();
-          updateConnectionStatus('connected', 'متصل بقاعدة البيانات');
-        } else {
-          updateConnectionStatus('disconnected', 'استجابة غير متوقعة');
+          updateConnectionStatus('connected', 'متصل ومزامن بالكامل ✓');
         }
       } catch (e) {
-        console.error(e);
-        updateConnectionStatus('disconnected', 'فشل الاتصال (تحقق من الإنترنت أو الرابط)');
+        updateConnectionStatus('disconnected', 'أوفلاين (يعمل من ذاكرة الهاتف)');
       }
       showLoader(false);
-    }
-
-    async function sendAction(payload) {
-      updateConnectionStatus('syncing', 'جاري الحفظ...');
-      showLoader(true);
-      try {
-        await fetch(API_URL, {
-          method: 'POST',
-          redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        await loadData();
-        updateConnectionStatus('connected', 'متصل بقاعدة البيانات');
-      } catch (e) {
-        alert('خطأ في الاتصال');
-        updateConnectionStatus('disconnected', 'فشل الحفظ');
-        showLoader(false);
-      }
     }
 
     function populateDropdowns() {
@@ -470,111 +496,160 @@
       renderAdminManagement();
     }
 
-    function renderAdminManagement() {
-      document.getElementById('adminTeachersList').innerHTML = db.teachers.map(t => `
-        <div class="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg text-xs">
-          <input id="t_name_${t['المعرف']}" type="text" value="${t['اسم المعلمة']}" class="w-1/3 p-1 border rounded bg-white font-bold">
-          <input id="t_sal_${t['المعرف']}" type="number" value="${t['الراتب الأساسي']}" class="w-1/4 p-1 border rounded bg-white" placeholder="الراتب">
-          <input id="t_ded_${t['المعرف']}" type="number" value="${t['خصم يوم الغياب']}" class="w-1/4 p-1 border rounded bg-white text-rose-600" placeholder="الخصم">
-          <button onclick="saveTeacherEdit('${t['المعرف']}')" class="flex-1 bg-emerald-600 text-white p-1 rounded font-bold">حفظ</button>
-        </div>
-      `).join('');
-
-      document.getElementById('adminGroupsList').innerHTML = db.groups.map(g => {
-        const teacherOpts = db.teachers.map(t => `<option value="${t['المعرف']}" ${t['المعرف'] === g['معرف المعلمة'] ? 'selected' : ''}>${t['اسم المعلمة']}</option>`).join('');
-        return `
-          <div class="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg text-xs">
-            <input id="g_name_${g['المعرف']}" type="text" value="${g['اسم الحلقة']}" class="w-1/3 p-1 border rounded bg-white font-bold">
-            <select id="g_teacher_${g['المعرف']}" class="w-1/3 p-1 border rounded bg-white">${teacherOpts}</select>
-            <input id="g_fee_${g['المعرف']}" type="number" value="${g['الاشتراك الشهري']}" class="w-1/6 p-1 border rounded bg-white" placeholder="الاشتراك">
-            <button onclick="saveGroupEdit('${g['المعرف']}')" class="flex-1 bg-emerald-600 text-white p-1 rounded font-bold">حفظ</button>
-          </div>
-        `;
-      }).join('');
-
-      renderAdminStudents();
-    }
-
-    function renderAdminStudents() {
-      const query = (document.getElementById('studentSearchInput')?.value || '').toLowerCase();
-      const students = db.students.filter(s => (s['اسم الطالب'] || '').toLowerCase().includes(query) || (s['اسم الحلقة'] || '').toLowerCase().includes(query));
-
-      document.getElementById('adminStudentsList').innerHTML = students.map(s => {
-        const gOpts = db.groups.map(g => `<option value="${g['المعرف']}" ${g['المعرف'] === s['معرف الحلقة'] ? 'selected' : ''}>${g['اسم الحلقة']}</option>`).join('');
-        return `
-          <div class="p-2 bg-slate-50 rounded-lg text-xs space-y-1.5 border">
-            <div class="flex gap-1">
-              <input id="s_name_${s['المعرف']}" type="text" value="${s['اسم الطالب']}" class="w-1/2 p-1 border rounded bg-white font-bold">
-              <select id="s_group_${s['المعرف']}" class="w-1/2 p-1 border rounded bg-white">${gOpts}</select>
-            </div>
-            <div class="flex gap-1">
-              <input id="s_fee_${s['المعرف']}" type="number" value="${s['المصروفات المطلوبة']}" class="w-1/3 p-1 border rounded bg-white" placeholder="المصروفات">
-              <input id="s_phone_${s['المعرف']}" type="tel" value="${s['هاتف ولي الأمر']}" class="w-1/2 p-1 border rounded bg-white" placeholder="الهاتف">
-              <button onclick="saveStudentEdit('${s['المعرف']}')" class="flex-1 bg-emerald-600 text-white p-1 rounded font-bold">حفظ</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function saveTeacherEdit(id) {
-      const name = document.getElementById('t_name_' + id).value;
-      const salary = document.getElementById('t_sal_' + id).value;
-      const deduction = document.getElementById('t_ded_' + id).value;
-      const t = db.teachers.find(x => x['المعرف'] === id) || {};
-      sendAction({ action: 'updateTeacher', id, name, phone: t['الهاتف'] || '', salary, deduction });
-    }
-
-    function saveGroupEdit(id) {
-      const name = document.getElementById('g_name_' + id).value;
-      const tSel = document.getElementById('g_teacher_' + id);
-      const teacherId = tSel.value;
-      const teacherName = tSel.selectedOptions[0]?.text || '';
-      const fee = document.getElementById('g_fee_' + id).value;
-      sendAction({ action: 'updateGroup', id, name, teacherId, teacherName, fee });
-    }
-
-    function saveStudentEdit(id) {
-      const name = document.getElementById('s_name_' + id).value;
-      const gSel = document.getElementById('s_group_' + id);
-      const groupId = gSel.value;
-      const groupName = gSel.selectedOptions[0]?.text || '';
-      const fee = document.getElementById('s_fee_' + id).value;
-      const phone = document.getElementById('s_phone_' + id).value;
-      sendAction({ action: 'updateStudent', id, name, groupId, groupName, fee, phone });
-    }
-
+    // ======== 1. حضور المعلمات + توزيع الأطفال والبونص الفوري ========
     function renderTeachers() {
       const date = document.getElementById('currentDate').value;
       document.getElementById('teachersList').innerHTML = db.teachers.map(t => {
         const rec = db.teacherAtt.find(a => a['التاريخ'] === date && a['معرف المعلمة'] === t['المعرف']) || {};
         const status = rec['الحالة'] || 'لم يسجل';
+        const bonus = Number(rec['بونص اليوم']) || 0;
+        const bonusNote = rec['ملاحظة البونص'] || '';
+
+        let badgeColor = 'bg-slate-100 text-slate-600';
+        if (status === 'حاضر') badgeColor = 'bg-emerald-100 text-emerald-800';
+        if (status === 'غائب') badgeColor = 'bg-rose-100 text-rose-800';
+        if (status === 'مستأذن') badgeColor = 'bg-amber-100 text-amber-800';
+
+        // خيارات المعلمات البديلات (لتغطية المعلمة الغائبة)
+        const otherTeachersOpts = `<option value="">-- اختر معلمة --</option>` + db.teachers
+          .filter(other => other['المعرف'] !== t['المعرف'])
+          .map(other => `<option value="${other['المعرف']}">${other['اسم المعلمة']}</option>`).join('');
+
         return `
           <div class="bg-white p-3 rounded-xl shadow-sm border space-y-2">
             <div class="flex justify-between items-center">
-              <div><h3 class="font-bold text-slate-800 text-sm">${t['اسم المعلمة']}</h3><p class="text-xs text-slate-500">خصم اليوم: ${t['خصم يوم الغياب']} ج</p></div>
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full ${status === 'حاضر' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100'}">${status} ${rec['وقت الحضور'] ? `(${rec['وقت الحضور']})` : ''}</span>
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm">${t['اسم المعلمة']}</h3>
+                <p class="text-xs text-slate-500">
+                  خصم الغياب: ${t['خصم يوم الغياب']} ج
+                  ${bonus > 0 ? `<span class="text-indigo-700 font-bold mr-1">| 🎁 بونص اليوم: +${bonus} ج (${bonusNote})</span>` : ''}
+                </p>
+              </div>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full ${badgeColor}">
+                ${status} ${rec['وقت الحضور'] && rec['وقت الحضور'] !== '-' ? `(${rec['وقت الحضور']})` : ''}
+              </span>
             </div>
+
             <div class="flex items-center gap-1.5 text-xs bg-slate-50 p-2 rounded-lg">
-              <label>حضور:</label><input type="time" id="in_${t['المعرف']}" value="${rec['وقت الحضور'] || getNowTime()}" class="p-1 border rounded bg-white font-bold">
-              <label class="mr-2">انصراف:</label><input type="time" id="out_${t['المعرف']}" value="${rec['وقت الانصراف'] || getNowTime()}" class="p-1 border rounded bg-white font-bold">
+              <label>حضور:</label><input type="time" id="in_${t['المعرف']}" value="${rec['وقت الحضور'] && rec['وقت الحضور'] !== '-' ? rec['وقت الحضور'] : getNowTime()}" class="p-1 border rounded bg-white font-bold">
+              <label class="mr-2">انصراف:</label><input type="time" id="out_${t['المعرف']}" value="${rec['وقت الانصراف'] && rec['وقت الانصراف'] !== '-' ? rec['وقت الانصراف'] : getNowTime()}" class="p-1 border rounded bg-white font-bold">
             </div>
+
             <div class="grid grid-cols-4 gap-1">
-              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'حاضر', 'in')" class="bg-emerald-600 text-white py-1.5 rounded text-xs font-bold">حضور</button>
-              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'حاضر', 'out')" class="bg-teal-700 text-white py-1.5 rounded text-xs font-bold">انصراف</button>
-              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'غائب', 'none')" class="bg-rose-600 text-white py-1.5 rounded text-xs font-bold">غياب</button>
-              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'مستأذن', 'none')" class="bg-amber-500 text-white py-1.5 rounded text-xs font-bold">إذن</button>
+              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'حاضر', 'in')" class="bg-emerald-600 text-white py-1.5 rounded text-xs font-bold active:scale-95">حضور</button>
+              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'حاضر', 'out')" class="bg-teal-700 text-white py-1.5 rounded text-xs font-bold active:scale-95">انصراف</button>
+              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'غائب', 'none')" class="bg-rose-600 text-white py-1.5 rounded text-xs font-bold active:scale-95">غياب</button>
+              <button onclick="markT('${t['المعرف']}', '${t['اسم المعلمة']}', 'مستأذن', 'none')" class="bg-amber-500 text-white py-1.5 rounded text-xs font-bold active:scale-95">إذن</button>
             </div>
+
+            <!-- صندوق توزيع أطفال المعلمة الغائبة (يظهر تلقائياً عند تسجيل غياب أو استئذان) -->
+            ${(status === 'غائب' || status === 'مستأذن') ? `
+              <div class="mt-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2 text-xs">
+                <div class="font-bold text-indigo-900 flex justify-between items-center">
+                  <span>🔄 توزيع أطفال حلقتها اليوم (بونص للبديلة):</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <div>
+                    <label class="text-[10px] text-slate-600 block">المعلمة البديلة (1):</label>
+                    <select id="sub1_${t['المعرف']}" class="w-full p-1.5 border rounded bg-white text-xs font-semibold">${otherTeachersOpts}</select>
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-600 block">البديلة (2) (لو اتوزعوا ع 2):</label>
+                    <select id="sub2_${t['المعرف']}" class="w-full p-1.5 border rounded bg-white text-xs font-semibold">${otherTeachersOpts}</select>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 pt-1">
+                  <label class="text-[11px] font-bold text-indigo-900 whitespace-nowrap">إجمالي البونص (ج):</label>
+                  <input type="number" id="subBonus_${t['المعرف']}" value="${t['خصم يوم الغياب'] || 50}" class="w-20 p-1 border rounded bg-white font-bold text-center">
+                  <button onclick="assignSubstituteBonus('${t['المعرف']}', '${t['اسم المعلمة']}')" class="flex-1 bg-indigo-600 text-white py-1.5 px-2 rounded-lg font-bold shadow-sm active:scale-95">
+                    🎁 اعتماد البونص للبديلة
+                  </button>
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
       }).join('');
     }
 
-    function markT(id, name, status, mode) {
-      const date = document.getElementById('currentDate').value;
-      sendAction({ action: 'markTeacherAtt', date, month: date.slice(0, 7), teacherId: id, teacherName: name, status, checkIn: document.getElementById('in_'+id).value, checkOut: document.getElementById('out_'+id).value });
+    function updateLocalTeacherAtt(payload) {
+      let rec = db.teacherAtt.find(a => a['التاريخ'] === payload.date && a['معرف المعلمة'] === payload.teacherId);
+      if (!rec) {
+        rec = {
+          'التاريخ': payload.date, 'الشهر': payload.month,
+          'معرف المعلمة': payload.teacherId, 'اسم المعلمة': payload.teacherName,
+          'الحالة': payload.status || 'حاضر', 'وقت الحضور': payload.checkIn || '', 'وقت الانصراف': payload.checkOut || '',
+          'بونص اليوم': payload.bonus || 0, 'ملاحظة البونص': payload.bonusNote || ''
+        };
+        db.teacherAtt.push(rec);
+      } else {
+        if (payload.status !== undefined) rec['الحالة'] = payload.status;
+        if (payload.checkIn !== undefined) rec['وقت الحضور'] = payload.checkIn;
+        if (payload.checkOut !== undefined) rec['وقت الانصراف'] = payload.checkOut;
+        if (payload.bonus !== undefined) rec['بونص اليوم'] = payload.bonus;
+        if (payload.bonusNote !== undefined) rec['ملاحظة البونص'] = payload.bonusNote;
+      }
     }
 
+    function markT(id, name, status, mode) {
+      const date = document.getElementById('currentDate').value;
+      const month = date.slice(0, 7);
+      const inVal = document.getElementById('in_' + id).value;
+      const outVal = document.getElementById('out_' + id).value;
+
+      const payload = {
+        action: 'markTeacherAtt', date, month, teacherId: id, teacherName: name, status,
+        checkIn: mode === 'none' ? '-' : inVal,
+        checkOut: mode === 'out' ? outVal : (mode === 'none' ? '-' : '')
+      };
+
+      updateLocalTeacherAtt(payload);
+      queueAction(payload);
+    }
+
+    // دالة توزيع البونص على معلمة واحدة أو معلمتين بالتساوي
+    function assignSubstituteBonus(absentId, absentName) {
+      const date = document.getElementById('currentDate').value;
+      const month = date.slice(0, 7);
+      const sub1Id = document.getElementById('sub1_' + absentId).value;
+      const sub2Id = document.getElementById('sub2_' + absentId).value;
+      const totalBonus = Number(document.getElementById('subBonus_' + absentId).value) || 0;
+
+      const chosenIds = [sub1Id, sub2Id].filter((v, idx, arr) => v && arr.indexOf(v) === idx);
+      if (chosenIds.length === 0) return alert('يرجى اختيار معلمة بديلة واحدة على الأقل');
+
+      const splitBonus = Math.round((totalBonus / chosenIds.length) * 100) / 100;
+
+      chosenIds.forEach(subId => {
+        const subTeacher = db.teachers.find(t => t['المعرف'] === subId);
+        if (!subTeacher) return;
+
+        const existingRec = db.teacherAtt.find(a => a['التاريخ'] === date && a['معرف المعلمة'] === subId) || {};
+        const prevBonus = Number(existingRec['بونص اليوم']) || 0;
+        const prevNote = existingRec['ملاحظة البونص'] ? (existingRec['ملاحظة البونص'] + ' + ') : '';
+
+        const payload = {
+          action: 'markTeacherAtt',
+          date, month,
+          teacherId: subId,
+          teacherName: subTeacher['اسم المعلمة'],
+          status: existingRec['الحالة'] || 'حاضر',
+          checkIn: existingRec['وقت الحضور'] || getNowTime(),
+          checkOut: existingRec['وقت الانصراف'] || '',
+          bonus: prevBonus + splitBonus,
+          bonusNote: prevNote + `بدل ${absentName}`
+        };
+
+        updateLocalTeacherAtt(payload);
+        queueAction(payload);
+      });
+
+      alert(chosenIds.length === 1 
+        ? `تم إضافة بونص (${splitBonus} ج) للمعلمة البديلة بنجاح!` 
+        : `تم تقسيم البونص بالتساوي (${splitBonus} ج لكل معلمة) بنجاح!`);
+    }
+
+    // ======== 2. حضور الطلاب الفوري ========
     function renderGroupStudents() {
       const groupId = document.getElementById('groupSelectAtt').value;
       const date = document.getElementById('currentDate').value;
@@ -598,11 +673,11 @@
                   <h4 class="font-bold text-slate-800 text-sm">${s['اسم الطالب']}</h4>
                   ${hasSiblings ? `<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full">أخوة</span>` : ''}
                 </div>
-                <span class="text-xs ${status === 'حاضر' ? 'text-emerald-600 font-bold' : status === 'غائب' ? 'text-rose-600 font-bold' : 'text-slate-400'}">${status}</span>
+                <span class="text-xs ${status === 'حاضر' ? 'text-emerald-600 font-bold' : status === 'غائب' ? 'text-rose-600 font-bold' : 'text-slate-400'}">${status} ${rec['التقدير'] ? `| 🌟 ${rec['التقدير']}` : ''}</span>
               </div>
               <div class="flex gap-1">
-                <button onclick="markS('${s['المعرف']}', '${s['اسم الطالب']}', '${groupId}', 'حاضر')" class="px-3 py-1.5 rounded text-xs font-bold ${status === 'حاضر' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-700'}">حاضر</button>
-                <button onclick="markS('${s['المعرف']}', '${s['اسم الطالب']}', '${groupId}', 'غائب')" class="px-3 py-1.5 rounded text-xs font-bold ${status === 'غائب' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700'}">غائب</button>
+                <button onclick="markS('${s['المعرف']}', '${s['اسم الطالب']}', '${groupId}', 'حاضر')" class="px-3 py-1.5 rounded text-xs font-bold active:scale-95 ${status === 'حاضر' ? 'bg-emerald-700 text-white' : 'bg-emerald-50 text-emerald-700'}">حاضر</button>
+                <button onclick="markS('${s['المعرف']}', '${s['اسم الطالب']}', '${groupId}', 'غائب')" class="px-3 py-1.5 rounded text-xs font-bold active:scale-95 ${status === 'غائب' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700'}">غائب</button>
               </div>
             </div>
             <div class="flex gap-1.5 pt-1">
@@ -621,9 +696,24 @@
     }
 
     function markS(studentId, studentName, groupId, status) {
-      sendAction({ action: 'markStudentAtt', date: document.getElementById('currentDate').value, month: document.getElementById('currentDate').value.slice(0, 7), studentId, studentName, groupId, status, grade: document.getElementById('grade_'+studentId)?.value || '', note: document.getElementById('note_'+studentId)?.value || '' });
+      const date = document.getElementById('currentDate').value;
+      const month = date.slice(0, 7);
+      const grade = status === 'حاضر' ? (document.getElementById('grade_' + studentId)?.value || 'ممتاز') : '';
+      const note = document.getElementById('note_' + studentId)?.value || '';
+
+      let rec = db.studentAtt.find(a => a['التاريخ'] === date && a['معرف الطالب'] === studentId);
+      if (!rec) {
+        db.studentAtt.push({ 'التاريخ': date, 'الشهر': month, 'معرف الطالب': studentId, 'اسم الطالب': studentName, 'معرف الحلقة': groupId, 'الحالة': status, 'التقدير': grade, 'ملاحظة المعلمة': note });
+      } else {
+        rec['الحالة'] = status;
+        rec['التقدير'] = grade;
+        rec['ملاحظة المعلمة'] = note;
+      }
+
+      queueAction({ action: 'markStudentAtt', date, month, studentId, studentName, groupId, status, grade, note });
     }
 
+    // ======== 3. تحصيل المصروفات الفوري ========
     function renderFees() {
       const month = document.getElementById('feeMonth').value;
       const groupFilter = document.getElementById('groupSelectFee').value;
@@ -653,7 +743,7 @@
                 const paid = !!db.payments.find(p => p['الشهر'] === month && p['معرف الطالب'] === s['المعرف'] && Number(p['المبلغ المدفوع']) > 0);
                 return `<div class="flex justify-between text-xs py-1 border-b"><span>${s['اسم الطالب']} (${s['المصروفات المطلوبة']} ج)</span>${paid ? '✅' : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-emerald-600 text-white px-2 py-0.5 rounded">تحصيل</button>`}</div>`;
               }).join('')}
-              ${unpaidTot > 0 ? `<div class="flex gap-1 pt-1"><button onclick="payAllSiblingsFee('${fam[0]['المعرف']}')" class="flex-1 bg-emerald-700 text-white text-xs py-1 rounded">تحصيل الكل</button><button onclick="sendFeeReminderWhatsApp('${fam[0]['المعرف']}')" class="flex-1 bg-green-600 text-white text-xs py-1 rounded">واتساب مجمع</button></div>` : ''}
+              ${unpaidTot > 0 ? `<div class="flex gap-1 pt-1"><button onclick="payAllSiblingsFee('${fam[0]['المعرف']}')" class="flex-1 bg-emerald-700 text-white text-xs py-1 rounded font-bold">تحصيل الكل فوراً</button><button onclick="sendFeeReminderWhatsApp('${fam[0]['المعرف']}')" class="flex-1 bg-green-600 text-white text-xs py-1 rounded font-bold">واتساب مجمع</button></div>` : ''}
             </div>
           `;
         }).join('');
@@ -666,16 +756,31 @@
         return `
           <div class="bg-white p-3 rounded-xl shadow-sm border flex justify-between items-center">
             <div><h4 class="font-bold text-xs">${s['اسم الطالب']}</h4><p class="text-[11px] text-slate-500">${s['اسم الحلقة']} | ${s['المصروفات المطلوبة']} ج</p></div>
-            <div>${paid ? '<span class="text-emerald-700 text-xs font-bold">✅ خالص</span>' : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded">تحصيل</button>`}</div>
+            <div>${paid ? '<span class="text-emerald-700 text-xs font-bold">✅ خالص</span>' : `<button onclick="payStudentFee('${s['المعرف']}', '${s['اسم الطالب']}', '${s['معرف الحلقة']}', '${s['المصروفات المطلوبة']}')" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded font-bold active:scale-95">تحصيل</button>`}</div>
           </div>
         `;
       }).join('');
     }
 
     function payStudentFee(studentId, studentName, groupId, amount) {
-      sendAction({ action: 'payFee', date: document.getElementById('currentDate').value, month: document.getElementById('feeMonth').value, studentId, studentName, groupId, amount });
+      const date = document.getElementById('currentDate').value;
+      const month = document.getElementById('feeMonth').value;
+      let rec = db.payments.find(p => p['الشهر'] === month && p['معرف الطالب'] === studentId);
+      if (!rec) db.payments.push({ 'التاريخ': date, 'الشهر': month, 'معرف الطالب': studentId, 'اسم الطالب': studentName, 'معرف الحلقة': groupId, 'المبلغ المدفوع': amount });
+      else rec['المبلغ المدفوع'] = amount;
+
+      queueAction({ action: 'payFee', date, month, studentId, studentName, groupId, amount });
     }
 
+    function payAllSiblingsFee(studentId) {
+      const month = document.getElementById('feeMonth').value;
+      const student = db.students.find(s => s['المعرف'] === studentId);
+      if (!student) return;
+      const unpaid = getSiblings(student).filter(sib => !db.payments.find(p => p['الشهر'] === month && p['معرف الطالب'] === sib['المعرف'] && Number(p['المبلغ المدفوع']) > 0));
+      unpaid.forEach(sib => payStudentFee(sib['المعرف'], sib['اسم الطالب'], sib['معرف الحلقة'], sib['المصروفات المطلوبة']));
+    }
+
+    // ======== 4. التقارير والرواتب الشاملة للبونص ========
     function renderMonthlyReports() {
       const month = document.getElementById('reportMonth').value;
       const groupId = document.getElementById('groupSelectReport').value;
@@ -690,43 +795,163 @@
       `;
 
       document.getElementById('studentsReportList').innerHTML = students.map(s => `
-        <div class="bg-white p-3 rounded-xl shadow-sm border text-xs space-y-1">
-          <div class="flex justify-between font-bold"><span>${s['اسم الطالب']}</span><button onclick="sendMonthlyReportWhatsApp('${s['المعرف']}', false)" class="bg-emerald-700 text-white px-2 py-0.5 rounded">تقرير واتساب</button></div>
+        <div class="bg-white p-3 rounded-xl shadow-sm border text-xs flex justify-between items-center">
+          <span class="font-bold">${s['اسم الطالب']}</span>
+          <button onclick="sendMonthlyReportWhatsApp('${s['المعرف']}', false)" class="bg-emerald-700 text-white px-2.5 py-1 rounded font-bold">📲 تقرير واتساب</button>
         </div>
       `).join('');
     }
 
+    // مسير الرواتب شامل الأساسي - الغياب + بونص تغطية الحلقات
     function renderPayroll() {
       const month = document.getElementById('payrollMonth').value;
       document.getElementById('payrollList').innerHTML = db.teachers.map(t => {
         const logs = db.teacherAtt.filter(a => a['الشهر'] === month && a['معرف المعلمة'] === t['المعرف']);
+        const present = logs.filter(a => a['الحالة'] === 'حاضر').length;
         const absent = logs.filter(a => a['الحالة'] === 'غائب').length;
-        const net = Math.max(0, Number(t['الراتب الأساسي']) - (absent * Number(t['خصم يوم الغياب'])));
-        return `<div class="p-2.5 bg-slate-50 rounded border text-xs flex justify-between"><span><b>${t['اسم المعلمة']}</b> (غياب: ${absent})</span><span class="text-emerald-700 font-bold">الصافي: ${net} ج</span></div>`;
+        const totalBonus = logs.reduce((sum, a) => sum + (Number(a['بونص اليوم']) || 0), 0);
+
+        const base = Number(t['الراتب الأساسي']) || 0;
+        const deduct = absent * (Number(t['خصم يوم الغياب']) || 50);
+        const net = Math.max(0, base - deduct + totalBonus);
+
+        return `
+          <div class="p-3 bg-slate-50 rounded-xl border text-xs space-y-1">
+            <div class="flex justify-between font-bold text-sm">
+              <span>${t['اسم المعلمة']}</span>
+              <span class="text-emerald-700">الصافي: ${net} ج</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+              <span>الأساسي: ${base} ج (حضور: ${present})</span>
+              <span class="text-rose-600 font-semibold">خصم غياب (${absent}): -${deduct} ج</span>
+            </div>
+            ${totalBonus > 0 ? `<div class="text-indigo-700 font-bold border-t pt-1">🎁 إجمالي بونص تغطية الحلقات: +${totalBonus} ج</div>` : ''}
+          </div>
+        `;
       }).join('');
+    }
+
+    // ======== 5. الإدارة والتعديل الفوري ========
+    function renderAdminManagement() {
+      document.getElementById('adminTeachersList').innerHTML = db.teachers.map(t => `
+        <div class="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg text-xs">
+          <input id="t_name_${t['المعرف']}" type="text" value="${t['اسم المعلمة']}" class="w-1/3 p-1 border rounded bg-white font-bold">
+          <input id="t_sal_${t['المعرف']}" type="number" value="${t['الراتب الأساسي']}" class="w-1/4 p-1 border rounded bg-white">
+          <input id="t_ded_${t['المعرف']}" type="number" value="${t['خصم يوم الغياب']}" class="w-1/4 p-1 border rounded bg-white text-rose-600">
+          <button onclick="saveTeacherEdit('${t['المعرف']}')" class="flex-1 bg-emerald-600 text-white p-1 rounded font-bold">حفظ</button>
+        </div>
+      `).join('');
+
+      document.getElementById('adminGroupsList').innerHTML = db.groups.map(g => {
+        const teacherOpts = db.teachers.map(t => `<option value="${t['المعرف']}" ${t['المعرف'] === g['معرف المعلمة'] ? 'selected' : ''}>${t['اسم المعلمة']}</option>`).join('');
+        return `
+          <div class="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg text-xs">
+            <input id="g_name_${g['المعرف']}" type="text" value="${g['اسم الحلقة']}" class="w-1/3 p-1 border rounded bg-white font-bold">
+            <select id="g_teacher_${g['المعرف']}" class="w-1/3 p-1 border rounded bg-white">${teacherOpts}</select>
+            <input id="g_fee_${g['المعرف']}" type="number" value="${g['الاشتراك الشهري']}" class="w-1/6 p-1 border rounded bg-white">
+            <button onclick="saveGroupEdit('${g['المعرف']}')" class="flex-1 bg-emerald-600 text-white p-1 rounded font-bold">حفظ</button>
+          </div>
+        `;
+      }).join('');
+
+      renderAdminStudents();
+    }
+
+    function renderAdminStudents() {
+      const query = (document.getElementById('studentSearchInput')?.value || '').toLowerCase();
+      const students = db.students.filter(s => (s['اسم الطالب'] || '').toLowerCase().includes(query) || (s['اسم الحلقة'] || '').toLowerCase().includes(query));
+
+      document.getElementById('adminStudentsList').innerHTML = students.map(s => {
+        const gOpts = db.groups.map(g => `<option value="${g['المعرف']}" ${g['المعرف'] === s['معرف الحلقة'] ? 'selected' : ''}>${g['اسم الحلقة']}</option>`).join('');
+        return `
+          <div class="p-2 bg-slate-50 rounded-lg text-xs space-y-1.5 border">
+            <div class="flex gap-1">
+              <input id="s_name_${s['المعرف']}" type="text" value="${s['اسم الطالب']}" class="w-1/2 p-1 border rounded bg-white font-bold">
+              <select id="s_group_${s['المعرف']}" class="w-1/2 p-1 border rounded bg-white">${gOpts}</select>
+            </div>
+            <div class="flex gap-1">
+              <input id="s_fee_${s['المعرف']}" type="number" value="${s['المصروفات المطلوبة']}" class="w-1/3 p-1 border rounded bg-white">
+              <input id="s_phone_${s['المعرف']}" type="tel" value="${s['هاتف ولي الأمر']}" class="w-1/2 p-1 border rounded bg-white">
+              <button onclick="saveStudentEdit('${s['المعرف']}')" class="flex-1 bg-emerald-600 text-white p-1 rounded font-bold">حفظ</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveTeacherEdit(id) {
+      const name = document.getElementById('t_name_' + id).value;
+      const salary = document.getElementById('t_sal_' + id).value;
+      const deduction = document.getElementById('t_ded_' + id).value;
+      const t = db.teachers.find(x => x['المعرف'] === id);
+      if (t) { t['اسم المعلمة'] = name; t['الراتب الأساسي'] = salary; t['خصم يوم الغياب'] = deduction; }
+      populateDropdowns();
+      queueAction({ action: 'updateTeacher', id, name, phone: t ? t['الهاتف'] : '', salary, deduction });
+    }
+
+    function saveGroupEdit(id) {
+      const name = document.getElementById('g_name_' + id).value;
+      const tSel = document.getElementById('g_teacher_' + id);
+      const teacherId = tSel.value;
+      const teacherName = tSel.selectedOptions[0]?.text || '';
+      const fee = document.getElementById('g_fee_' + id).value;
+      const g = db.groups.find(x => x['المعرف'] === id);
+      if (g) { g['اسم الحلقة'] = name; g['معرف المعلمة'] = teacherId; g['اسم المعلمة'] = teacherName; g['الاشتراك الشهري'] = fee; }
+      populateDropdowns();
+      queueAction({ action: 'updateGroup', id, name, teacherId, teacherName, fee });
+    }
+
+    function saveStudentEdit(id) {
+      const name = document.getElementById('s_name_' + id).value;
+      const gSel = document.getElementById('s_group_' + id);
+      const groupId = gSel.value;
+      const groupName = gSel.selectedOptions[0]?.text || '';
+      const fee = document.getElementById('s_fee_' + id).value;
+      const phone = document.getElementById('s_phone_' + id).value;
+      const s = db.students.find(x => x['المعرف'] === id);
+      if (s) { s['اسم الطالب'] = name; s['معرف الحلقة'] = groupId; s['اسم الحلقة'] = groupName; s['المصروفات المطلوبة'] = fee; s['هاتف ولي الأمر'] = phone; }
+      queueAction({ action: 'updateStudent', id, name, groupId, groupName, fee, phone });
     }
 
     function addTeacher() {
       const name = document.getElementById('newTName').value.trim();
       if (!name) return alert('أدخل الاسم');
-      sendAction({ action: 'addTeacher', name, phone: document.getElementById('newTPhone').value, salary: document.getElementById('newTSalary').value, deduction: document.getElementById('newTDeduct').value });
+      const id = 'T' + Date.now().toString().slice(-5);
+      const phone = document.getElementById('newTPhone').value;
+      const salary = document.getElementById('newTSalary').value;
+      const deduction = document.getElementById('newTDeduct').value;
+      db.teachers.push({ 'المعرف': id, 'اسم المعلمة': name, 'الهاتف': phone, 'الراتب الأساسي': salary, 'خصم يوم الغياب': deduction });
       document.getElementById('newTName').value = '';
+      populateDropdowns();
+      queueAction({ action: 'addTeacher', id, name, phone, salary, deduction });
     }
 
     function addGroup() {
       const name = document.getElementById('newGName').value.trim();
       const sel = document.getElementById('newGTeacher');
       if (!name) return alert('أدخل اسم المقرأة');
-      sendAction({ action: 'addGroup', name, teacherId: sel.value, teacherName: sel.selectedOptions[0]?.text || '', fee: document.getElementById('newGFee').value });
+      const id = 'G' + Date.now().toString().slice(-5);
+      const teacherId = sel.value;
+      const teacherName = sel.selectedOptions[0]?.text || '';
+      const fee = document.getElementById('newGFee').value;
+      db.groups.push({ 'المعرف': id, 'اسم الحلقة': name, 'معرف المعلمة': teacherId, 'اسم المعلمة': teacherName, 'الاشتراك الشهري': fee });
       document.getElementById('newGName').value = '';
+      populateDropdowns();
+      queueAction({ action: 'addGroup', id, name, teacherId, teacherName, fee });
     }
 
     function addStudent() {
       const name = document.getElementById('newSName').value.trim();
       const sel = document.getElementById('newSGroup');
       if (!name) return alert('أدخل اسم الطالب');
-      sendAction({ action: 'addStudent', name, groupId: sel.value, groupName: sel.selectedOptions[0]?.text || '', fee: document.getElementById('newSFee').value, phone: document.getElementById('newSPhone').value });
+      const id = 'S' + Date.now().toString().slice(-5);
+      const groupId = sel.value;
+      const groupName = sel.selectedOptions[0]?.text || '';
+      const fee = document.getElementById('newSFee').value;
+      const phone = document.getElementById('newSPhone').value;
+      db.students.push({ 'المعرف': id, 'اسم الطالب': name, 'معرف الحلقة': groupId, 'اسم الحلقة': groupName, 'المصروفات المطلوبة': fee, 'هاتف ولي الأمر': phone });
       document.getElementById('newSName').value = '';
+      queueAction({ action: 'addStudent', id, name, groupId, groupName, fee, phone });
     }
 
     initApp();
